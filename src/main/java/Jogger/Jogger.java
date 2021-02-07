@@ -10,6 +10,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
@@ -44,8 +45,17 @@ public class Jogger {
 		ERROR;
 	}
 
-	/** The writer. */
-	private static FileWriter writer;
+		private static FileWriter writer;
+	
+	/**
+	 * Custom output stream.
+	 */
+	private static OutputStream outputStream = null;
+	
+	/**
+	 * Disables logging to a file if true.
+	 */
+	private static boolean disableFileLogging = false;
 
 	/** The log file. */
 	private static File logFile;
@@ -89,6 +99,18 @@ public class Jogger {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * Redirects output to the given OutputStream.
+	 * @param OutputStream os
+	 * @param boolean disableFileLogging
+	 */
+	public static void redirectOutput(OutputStream os, boolean disableFileLoggingg) {
+		synchronized(outputStream) {
+			outputStream = os;
+		}
+		disableFileLogging = disableFileLoggingg;
 	}
 
 	/**
@@ -249,12 +271,23 @@ public class Jogger {
 	 * @param message the message
 	 */
 	private static void print(String message) {
+		if(outputStream != null) {
+			synchronized(outputStream) {
+				try {
+					outputStream.write(message.getBytes());
+					outputStream.flush();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 		try {
-			if (writer == null)
+			if (writer == null || disableFileLogging)
 				return;
 			writer.write(message + "\n");
 			writer.flush();
 		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 
